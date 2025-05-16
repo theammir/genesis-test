@@ -1,11 +1,23 @@
 package api
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/theammir/genesis-test/api/weather"
+)
 
 type Weather struct {
 	Temperature float32 `json:"temperature"`
-	Humidity    float32 `json:"humidity"`
+	Humidity    uint8   `json:"humidity"`
 	Description string  `json:"description"`
+}
+
+func FromWeatherResponse(w *weather.CurrentWeatherResponse) Weather {
+	return Weather{
+		Temperature: w.Current.TemperatureC,
+		Humidity:    w.Current.Humidity,
+		Description: w.Current.Condition.Text,
+	}
 }
 
 type Frequency uint8
