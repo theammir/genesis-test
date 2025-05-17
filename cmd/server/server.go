@@ -74,7 +74,7 @@ type EnvConfig struct {
 	DBUser     string `env:"POSTGRES_USER"`
 	DBPassword string `env:"POSTGRES_PASSWORD"`
 	DBName     string `env:"POSTGRES_DB"`
-	DBHost     string `env:"POSTGRES_HOST" def:"localhost"`
+	DBHost     string `env:"POSTGRES_HOST" def:"db"`
 	DBPort     string `env:"POSTGRES_PORT" def:"5432"`
 }
 
