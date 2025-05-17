@@ -44,13 +44,26 @@ func subscribeHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, payload)
+	new_token, err := database.SubscribeUser(db, &payload)
+	if err != nil {
+		c.JSON(409, api.TextResponse{Code: 409, Message: "Email already subscribed"})
+		return
+	}
+	log.Printf("MOCK: Sending confirmation email to %s (token `%s`)", payload.Email, new_token)
+
+	c.JSON(200, api.TextResponse{Code: 200, Message: "Subscription successful. Confirmation email sent."})
 }
 
 func confirmHandler(c *gin.Context) {
 	payload := api.ConfirmPayload{Token: c.Param("token")}
 	if payload.Token == "" {
 		c.JSON(400, api.TextResponse{Code: 400, Message: "Invalid token"})
+		return
+	}
+
+	err := database.ConfirmUser(db, payload.Token)
+	if err != nil {
+		c.JSON(404, api.TextResponse{Code: 404, Message: "Token not found"})
 		return
 	}
 
@@ -61,6 +74,12 @@ func unsubscribeHandler(c *gin.Context) {
 	payload := api.UnsubscribePayload{Token: c.Param("token")}
 	if payload.Token == "" {
 		c.JSON(400, api.TextResponse{Code: 400, Message: "Invalid token"})
+		return
+	}
+
+	err := database.UnsubscribeUser(db, payload.Token)
+	if err != nil {
+		c.JSON(404, api.TextResponse{Code: 404, Message: "Token not found"})
 		return
 	}
 

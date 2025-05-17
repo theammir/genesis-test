@@ -27,7 +27,9 @@ func Get(host string, port string, user string, password string, dbname string) 
 	if err != nil {
 		log.Fatalf("Couldn't open DB connection: %v", err)
 	}
-
+	if err := db.Ping(); err != nil {
+		log.Fatalf("failed to ping db: %v", err)
+	}
 	return db
 }
 
