@@ -1,0 +1,29 @@
+services:
+  mailhog:
+    image: mailhog/mailhog:latest
+    environment:
+      SMTP_HOST: mailhog
+      SMTP_PORT: "1025"
+      SMTP_USER: debug
+      SMTP_PASS: debug
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - backend
+    profiles:
+      - debug
+
+  server:
+    environment:
+      SMTP_HOST: mailhog
+      SMTP_PORT: "1025"
+      SMTP_USER: debug
+      SMTP_PASS: debug
+    depends_on:
+      - mailhog
+    profiles:
+      - debug
+
+networks:
+  backend:

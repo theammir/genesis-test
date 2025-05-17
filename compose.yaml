@@ -13,11 +13,6 @@ services:
       - "5432"
     ports:
       - "5432:5432"
-    # healthcheck:
-    #   test: ["CMD-SHELL", "pg_isready"]
-    #   interval: 10s
-    #   timeout: 5s
-    #   retries: 5
     networks:
       - backend
 
@@ -33,12 +28,14 @@ services:
       HOST: ${HOST}
       PORT: ${PORT}
       WEATHERAPI_KEY: ${WEATHERAPI_KEY}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
     ports:
       - "${PORT}:${PORT}"
     depends_on:
       - db
-      # db:
-      #   condition: service_healthy
     networks:
       - backend
 
