@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 
 	"github.com/theammir/genesis-test/api"
@@ -11,6 +12,7 @@ type Subscriber struct {
 	Email     string
 	City      string
 	Frequency string
+	Token     string
 }
 
 // Generates a unique confirmation token.
@@ -123,20 +125,24 @@ func UnsubscribeUser(db *sql.DB, token string) error {
 
 func FetchSubscribers(db *sql.DB, frequency string) ([]Subscriber, error) {
 	rows, err := db.Query(`
-		SELECT (email, city, frequency)
-		FROM subscriptions
-		WHERE confirmed = true
-		AND frequency = $1
+		SELECT s.email, s.city, s.frequency, c.token
+		FROM subscriptions s
+		JOIN confirmations c
+		ON s.email = c.email
+		WHERE s.confirmed = true
+		AND s.frequency = $1;
 	`, frequency)
-	if err != nil {
-		return nil, err
+	if err == sql.ErrNoRows {
+		return nil, nil
+	} else if err != nil {
+		return nil, fmt.Errorf("couldn't fetch subscribers: %w", err)
 	}
 
 	var subs []Subscriber
 	for rows.Next() {
 		var sub Subscriber
-		if err := rows.Scan(&sub.Email, &sub.City, &sub.Frequency); err != nil {
-			return nil, err
+		if err := rows.Scan(&sub.Email, &sub.City, &sub.Frequency, &sub.Token); err != nil {
+			return nil, fmt.Errorf("invalid subscriber row: %w", err)
 		}
 		subs = append(subs, sub)
 	}

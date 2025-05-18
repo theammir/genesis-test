@@ -15,32 +15,35 @@ type Client struct {
 	user     string
 	password string
 	from     string
-	smtp.Client
+	*smtp.Client
 }
 
 func NewClient(host, port, user, password, from string) (*Client, error) {
 	conn, err := net.Dial("tcp", host+":"+port)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't dial tcp: %w", err)
+		return nil, fmt.Errorf("dial error: %w", err)
 	}
 	smtpC, err := smtp.NewClient(conn, host)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't create SMTP connection: %w", err)
+		return nil, fmt.Errorf("new client error: %w", err)
 	}
 
-	if ok, _ := smtpC.Extension("STARTTLS"); ok {
-		tlsConf := &tls.Config{ServerName: host, InsecureSkipVerify: true}
-		if err := smtpC.StartTLS(tlsConf); err != nil {
-			return nil, fmt.Errorf("error negotiating STARTTLS: %w", err)
-		}
+	if ok, _ := smtpC.Extension("STARTTLS"); !ok {
+		return nil, fmt.Errorf("server does not support STARTTLS")
+	}
+	if err := smtpC.StartTLS(&tls.Config{
+		ServerName:         host,
+		InsecureSkipVerify: true,
+	}); err != nil {
+		return nil, fmt.Errorf("starttls error: %w", err)
 	}
 
 	auth := smtp.PlainAuth("", user, password, host)
 	if err := smtpC.Auth(auth); err != nil {
-		return nil, fmt.Errorf("couldn't Auth SMTP connection: %w", err)
+		return nil, fmt.Errorf("auth error: %w", err)
 	}
 
-	return &Client{host, port, user, password, from, *smtpC}, nil
+	return &Client{host, port, user, password, from, smtpC}, nil
 }
 
 // Send an email to a single subject. `message` must be CRLF formatted.

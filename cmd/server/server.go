@@ -16,10 +16,10 @@ import (
 )
 
 var (
-	cfg    EnvConfig
-	db     *sql.DB
-	client *weather.Client
-	smtp   *mail.Client
+	cfg           EnvConfig
+	db            *sql.DB
+	weatherClient *weather.Client
+	mailClient    *mail.Client
 )
 
 func weatherHandler(c *gin.Context) {
@@ -32,7 +32,7 @@ func weatherHandler(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	weather, err := client.GetCurrentWeather(ctx, payload.City)
+	weather, err := weatherClient.GetCurrentWeather(ctx, payload.City)
 	if err != nil {
 		log.Printf(`GetCurrentWeather("%s") failed: %v`, payload.City, err)
 		c.JSON(400, api.TextResponse{Code: 400, Message: "Something went wrong"})
@@ -55,13 +55,13 @@ func subscribeHandler(c *gin.Context) {
 		return
 	}
 
-	url := cfg.Host
+	url := "http://" + cfg.Host
 	if cfg.Port != "80" && cfg.Port != "443" {
 		url += ":" + cfg.Port
 	}
 	url += "/confirm/" + newToken
 	log.Printf("Sending confirmation email to %s (token `%s`)", payload.Email, newToken)
-	smtp.SendConfirmation(payload, url)
+	mailClient.SendConfirmation(payload, url)
 
 	c.JSON(200, api.TextResponse{Code: 200, Message: "Subscription successful. Confirmation email sent."})
 }
@@ -128,13 +128,14 @@ func main() {
 	db = database.Get(cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName)
 	database.MigrateUp(db)
 
-	client = weather.NewClient(cfg.APIKey)
-	smtp, err := mail.NewClient(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPass, cfg.SMTPFrom)
+	weatherClient = weather.NewClient(cfg.APIKey)
+	log.Println("Initializing SMTP client...")
+	newMailClient, err := mail.NewClient(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPass, cfg.SMTPFrom)
 	if err != nil {
-		log.Printf("Couldn't create an SMTP client: %v", err)
-	} else {
-		defer smtp.Close()
+		log.Fatalf("Couldn't create an SMTP client: %v", err)
 	}
+	mailClient = newMailClient
+	defer mailClient.Close()
 
 	router := gin.Default()
 
