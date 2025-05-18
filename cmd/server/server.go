@@ -11,11 +11,16 @@ import (
 	"github.com/goloop/env"
 	"github.com/theammir/genesis-test/api"
 	"github.com/theammir/genesis-test/api/weather"
-	database "github.com/theammir/genesis-test/internal"
+	database "github.com/theammir/genesis-test/internal/db"
+	"github.com/theammir/genesis-test/internal/mail"
 )
 
-var db *sql.DB
-var client weather.Client
+var (
+	cfg    EnvConfig
+	db     *sql.DB
+	client *weather.Client
+	smtp   *mail.Client
+)
 
 func weatherHandler(c *gin.Context) {
 	var payload api.WeatherPayload
@@ -44,12 +49,19 @@ func subscribeHandler(c *gin.Context) {
 		return
 	}
 
-	new_token, err := database.SubscribeUser(db, &payload)
+	newToken, err := database.SubscribeUser(db, &payload)
 	if err != nil {
 		c.JSON(409, api.TextResponse{Code: 409, Message: "Email already subscribed"})
 		return
 	}
-	log.Printf("MOCK: Sending confirmation email to %s (token `%s`)", payload.Email, new_token)
+
+	url := cfg.Host
+	if cfg.Port != "80" && cfg.Port != "443" {
+		url += ":" + cfg.Port
+	}
+	url += "/confirm/" + newToken
+	log.Printf("Sending confirmation email to %s (token `%s`)", payload.Email, newToken)
+	smtp.SendConfirmation(payload, url)
 
 	c.JSON(200, api.TextResponse{Code: 200, Message: "Subscription successful. Confirmation email sent."})
 }
@@ -87,30 +99,42 @@ func unsubscribeHandler(c *gin.Context) {
 }
 
 type EnvConfig struct {
-	Host       string `env:"HOST" def:"0.0.0.0"`
-	Port       string `env:"PORT" def:"8080"`
-	APIKey     string `env:"WEATHERAPI_KEY"`
+	Host string `env:"HOST" def:"0.0.0.0"`
+	Port string `env:"PORT" def:"8080"`
+
+	APIKey string `env:"WEATHERAPI_KEY"`
+
 	DBUser     string `env:"POSTGRES_USER"`
 	DBPassword string `env:"POSTGRES_PASSWORD"`
 	DBName     string `env:"POSTGRES_DB"`
 	DBHost     string `env:"POSTGRES_HOST" def:"db"`
 	DBPort     string `env:"POSTGRES_PORT" def:"5432"`
+
+	SMTPHost string `env:"SMTP_HOST"`
+	SMTPPort string `env:"SMTP_PORT" def:"587"`
+	SMTPUser string `env:"SMTP_USER"`
+	SMTPPass string `env:"SMTP_PASS"`
+	SMTPFrom string `env:"SMTP_FROM"`
 }
 
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 	log.SetOutput(os.Stdout)
 
-	var cfg EnvConfig
 	if err := env.Unmarshal("", &cfg); err != nil {
 		log.Fatal("Environment variables missing!!")
-		return
 	}
 
 	db = database.Get(cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName)
 	database.MigrateUp(db)
 
-	client = *weather.NewClient(cfg.APIKey)
+	client = weather.NewClient(cfg.APIKey)
+	smtp, err := mail.NewClient(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPass, cfg.SMTPFrom)
+	if err != nil {
+		log.Printf("Couldn't create an SMTP client: %v", err)
+	} else {
+		defer smtp.Close()
+	}
 
 	router := gin.Default()
 

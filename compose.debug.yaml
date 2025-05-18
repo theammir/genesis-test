@@ -16,10 +16,11 @@ services:
 
   server:
     environment:
-      SMTP_HOST: mailhog
+      SMTP_HOST: "127.0.0.1"
       SMTP_PORT: "1025"
       SMTP_USER: debug
       SMTP_PASS: debug
+      SMTP_FROM: debug@weather.com
     depends_on:
       - mailhog
     profiles:

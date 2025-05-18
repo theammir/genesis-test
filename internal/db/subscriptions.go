@@ -7,6 +7,12 @@ import (
 	"github.com/theammir/genesis-test/api"
 )
 
+type Subscriber struct {
+	Email     string
+	City      string
+	Frequency string
+}
+
 // Generates a unique confirmation token.
 func GenerateToken(db *sql.DB) (string, error) {
 	// TODO: Proper implementation
@@ -22,13 +28,25 @@ func GenerateToken(db *sql.DB) (string, error) {
 	return count, nil
 }
 
-func deleteConfirmation(db *sql.DB, email string) error {
-	// assuming the token is unique, which i hope to preserve
-	if _, err := db.Exec(`
+// Delete all the confirmation tokens of a user.
+// If `preserveToken` is specified, doesn't remove that token.
+func deleteConfirmations(db *sql.DB, email string, preserveToken *string) error {
+	// if tokens aren't unique, this isn't gonna work
+	if preserveToken == nil {
+		if _, err := db.Exec(`
+			DELETE FROM confirmations
+			WHERE email = $1;
+		`, email); err != nil {
+			return err
+		}
+	} else {
+		if _, err := db.Exec(`
 			DELETE FROM confirmations
 			WHERE email = $1
-		`, email); err != nil {
-		return err
+			AND token != $2;
+		`, email, *preserveToken); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -75,11 +93,13 @@ func ConfirmUser(db *sql.DB, token string) error {
 			SET confirmed = true
 			FROM confirmations AS c
 			WHERE c.token = $1 AND s.email = c.email
-			RETURNING s.email
+			RETURNING s.email;
 		`, token).Scan(&email); err != nil {
 		return err
 	}
-	deleteConfirmation(db, email)
+	// delete all the confirmation tokens except for the one
+	// that will be used for unsubscribing
+	deleteConfirmations(db, email, &token)
 
 	log.Printf("User confirmed: %s", email)
 	return nil
@@ -91,12 +111,35 @@ func UnsubscribeUser(db *sql.DB, token string) error {
 			DELETE FROM subscriptions AS s
 			USING confirmations AS c
 			WHERE c.token = $1 AND s.email = c.email
-			RETURNING s.email
+			RETURNING s.email;
 		`, token).Scan(&email); err != nil {
 		return err
 	}
-	deleteConfirmation(db, email)
+	deleteConfirmations(db, email, nil)
 
 	log.Printf("User unsubscribed: %s", email)
 	return nil
+}
+
+func FetchSubscribers(db *sql.DB, frequency string) ([]Subscriber, error) {
+	rows, err := db.Query(`
+		SELECT (email, city, frequency)
+		FROM subscriptions
+		WHERE confirmed = true
+		AND frequency = $1
+	`, frequency)
+	if err != nil {
+		return nil, err
+	}
+
+	var subs []Subscriber
+	for rows.Next() {
+		var sub Subscriber
+		if err := rows.Scan(&sub.Email, &sub.City, &sub.Frequency); err != nil {
+			return nil, err
+		}
+		subs = append(subs, sub)
+	}
+
+	return subs, nil
 }
