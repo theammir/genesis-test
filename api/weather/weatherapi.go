@@ -4,8 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
+	"strings"
+	"time"
+
+	"github.com/theammir/genesis-test/internal/cache"
 )
 
 const baseURL = "https://api.weatherapi.com/v1"
@@ -34,13 +39,30 @@ type CurrentWeatherResponse struct {
 type Client struct {
 	APIKey     string
 	httpClient *http.Client
+	ttlCache   *cache.TTLCache[string, *CurrentWeatherResponse]
 }
 
 func NewClient(apiKey string) *Client {
-	return &Client{APIKey: apiKey, httpClient: &http.Client{}}
+	return &Client{APIKey: apiKey, httpClient: &http.Client{}, ttlCache: cache.NewTTLCache[string, *CurrentWeatherResponse](15 * time.Minute)}
 }
 
 func (c *Client) GetCurrentWeather(ctx context.Context, locationQuery string) (*CurrentWeatherResponse, error) {
+	var locationLower = strings.ToLower(locationQuery)
+	weather, ok := c.ttlCache.Get(locationLower)
+	if !ok {
+		var err error
+		weather, err = c.fetchCurrentWeather(ctx, locationQuery)
+		if err != nil {
+			return nil, err
+		}
+		c.ttlCache.Set(locationLower, weather)
+	} else {
+		log.Printf("Reusing from cache for %s", locationQuery)
+	}
+	return weather, nil
+}
+
+func (c *Client) fetchCurrentWeather(ctx context.Context, locationQuery string) (*CurrentWeatherResponse, error) {
 	endpoint := baseURL + "/current.json"
 	requestURL, _ := url.Parse(endpoint)
 

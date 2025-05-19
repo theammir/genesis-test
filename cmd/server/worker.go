@@ -36,21 +36,13 @@ func SendWeatherForecasts(ctx context.Context, counter uint) {
 			subs = append(subs, dailySubs...)
 		}
 	}
-	weatherCache := make(map[string]api.Weather, len(subs))
-
 	for _, sub := range subs {
-		log.Printf("Searching %s in cache...", sub.City)
-		weather, ok := weatherCache[sub.City]
-		if !ok {
-			log.Printf("...not found. Fetching from API.")
-			weatherResp, err := weatherClient.GetCurrentWeather(ctx, sub.City)
-			if err != nil {
-				log.Printf("Error when getting weather: %v", err)
-				continue
-			}
-			weather = api.FromWeatherResponse(weatherResp)
-			weatherCache[sub.City] = weather
+		weatherResp, err := weatherClient.GetCurrentWeather(ctx, sub.City)
+		if err != nil {
+			log.Printf("Error when getting weather: %v", err)
+			continue
 		}
+		weather := api.FromWeatherResponse(weatherResp)
 		log.Printf("Sending %s weather forecast in %s to %s", sub.Frequency, sub.City, sub.Email)
 		if err := mailClient.SendWeather(sub, weather, GetUnsubUrl(sub.Token)); err != nil {
 			log.Printf("Couldn't send weather forecast: %v", err)
