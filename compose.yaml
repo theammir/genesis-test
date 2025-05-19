@@ -16,6 +16,13 @@ services:
     networks:
       - backend
 
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 1s
+      timeout: 1s
+      retries: 2
+      start_period: 0s
+
   server:
     env_file:
       .env
@@ -36,7 +43,8 @@ services:
     ports:
       - "${PORT}:${PORT}"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - backend
 
