@@ -31,6 +31,7 @@ services:
       dockerfile: Dockerfile
     command: ["server"]
     environment:
+      GIN_MODE: release
       POSTGRES_HOST: db
       HOST: ${HOST}
       PORT: ${PORT}

@@ -21,6 +21,7 @@ services:
 
   server:
     environment:
+      GIN_MODE:
       SMTP_HOST: mailpit
       SMTP_PORT: "1025"
       SMTP_USER: debug
