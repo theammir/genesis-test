@@ -21,6 +21,7 @@ type Client struct {
 	*smtp.Client
 }
 
+// Connect to the SMTP server, negotiate STARTTLS and authenticate.
 func NewClient(host, port, user, password, from string) (*Client, error) {
 	conn, err := net.Dial("tcp", host+":"+port)
 	if err != nil {
@@ -49,17 +50,17 @@ func NewClient(host, port, user, password, from string) (*Client, error) {
 	return &Client{host, port, user, password, from, sync.Mutex{}, smtpC}, nil
 }
 
-// Send an email to a single subject. `message` must be CRLF formatted.
-func (c *Client) sendEmail(to, subject, message string) error {
-	messageBytes := []byte(
-		"To: " + to + "\r\n" +
-			"Subject: " + subject + "\r\n" +
-			"\r\n" +
-			message + "\r\n",
-	)
-
+func (c *Client) sendEmail(to string, message []byte) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	if err := c.Reset(); err != nil {
+		newClient, err := NewClient(c.host, c.port, c.user, c.password, c.from)
+		if err != nil {
+			return err
+		}
+		c = newClient
+	}
 
 	if err := c.Mail(c.from); err != nil {
 		return err
@@ -71,26 +72,59 @@ func (c *Client) sendEmail(to, subject, message string) error {
 	if err != nil {
 		return err
 	}
-	if _, err := wc.Write(messageBytes); err != nil {
+	if _, err := wc.Write(message); err != nil {
 		return err
 	}
 	return wc.Close()
 }
 
-// TODO: On the server, make a goroutine that invokes these periodically, fetching recipients
-// from DB.
+// Send a plain text email to a single subject. `message` must be CRLF formatted.
+func (c *Client) sendEmailPlain(to, subject, message string) error {
+	headers := []byte(
+		"From: " + c.from + "\r\n" +
+			"To: " + to + "\r\n" +
+			"Subject: " + subject + "\r\n",
+	)
+	messageBytes := append(headers, []byte(
+		"\r\n"+
+			message+"\r\n",
+	)...)
 
-func (c *Client) SendConfirmation(payload api.SubscribePayload, unsubUrl string) error {
-	message := fmt.Sprintf("Confirm your subscription for %s forecast updates in %s: %s",
-		payload.Frequency, payload.City, unsubUrl)
-	return c.sendEmail(payload.Email, "Weather subscription confirmation", message)
+	return c.sendEmail(to, messageBytes)
 }
 
-func (c *Client) SendWeather(sub database.Subscriber, weather api.Weather, unsubUrl string) error {
-	message := fmt.Sprintf(
-		"Your %s forecast:\r\n"+
-			"It is %f °C in %s; %s; %d%% of humidity.\r\n\r\n"+
-			"Unsubscribe: %s",
-		sub.Frequency, weather.Temperature, sub.City, weather.Description, weather.Humidity, unsubUrl)
-	return c.sendEmail(sub.Email, fmt.Sprintf("Weather forecast in %s", sub.City), message)
+// Send an HTML email to a single subject. `message` must be CRLF formatted.
+func (c *Client) sendEmailHTML(to, subject, message string) error {
+	headers := []byte(
+		"From: " + c.from + "\r\n" +
+			"To: " + to + "\r\n" +
+			"Subject: " + subject + "\r\n" +
+			"MIME-Version: 1.0\r\n" +
+			`Content-Type: text/html; charset="utf-8"` + "\r\n",
+	)
+	messageBytes := append(headers, []byte(
+		"\r\n"+
+			message+"\r\n",
+	)...)
+
+	return c.sendEmail(to, messageBytes)
+}
+
+// Send a confirmation email to a user, with provided unsubscription URL
+func (c *Client) SendConfirmation(payload api.SubscribePayload, unsubURL string) error {
+	message, err := GetConfirmationHTML(payload, unsubURL)
+	if err != nil {
+		return err
+	}
+
+	return c.sendEmailHTML(payload.Email, "Weather subscription confirmation", message)
+}
+
+// Send a regular weather email to a user, with provided unsubscription URL
+func (c *Client) SendWeather(sub database.Subscriber, weather api.Weather, unsubURL string) error {
+	message, err := GetWeatherHTML(sub, weather, unsubURL)
+	if err != nil {
+		return err
+	}
+	return c.sendEmailHTML(sub.Email, fmt.Sprintf("Weather forecast in %s", sub.City), message)
 }

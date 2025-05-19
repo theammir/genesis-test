@@ -1,0 +1,50 @@
+<!-- these two were totally stolen from chatgpt -->
+<!-- treat these as a PoC -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Confirm Subscription</title>
+</head>
+<body style="margin:0; padding:0; background:#f2f2f2;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f2f2f2; padding:30px 0;">
+    <tr>
+      <td align="center">
+        <!-- White “card” -->
+        <table width="600" cellpadding="0" cellspacing="0" style="
+            background:#ffffff;
+            border-radius:8px;
+            padding:40px;
+            font-family: sans-serif;
+            color: #333333;
+            line-height:1.4;
+          ">
+          <tr>
+            <td>
+              <p>Hi there,</p>
+              <p>Please confirm your subscription for 
+                <strong>{{.Frequency}}</strong> forecast updates in 
+                <strong>{{.City}}</strong> by clicking the button below:</p>
+              <p style="text-align:center; margin:30px 0;">
+                <a href="{{.UnsubURL}}" style="
+                    display:inline-block;
+                    padding:12px 24px;
+                    background-color:#28a745;
+                    color:#ffffff;
+                    text-decoration:none;
+                    border-radius:4px;
+                    font-weight:bold;
+                  ">
+                  Confirm Subscription
+                </a>
+              </p>
+              <p>If you didn’t request this, you can safely ignore this email.</p>
+              <p>Thanks,<br>Your Weather App Team</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

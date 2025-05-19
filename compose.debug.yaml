@@ -4,7 +4,7 @@ services:
     container_name: mailpit
     restart: unless-stopped
     volumes:
-      - ./debug/data:/data
+      - ./debug/data/:/data
       - ./debug/certs/:/certs
     ports:
       - 8025:8025

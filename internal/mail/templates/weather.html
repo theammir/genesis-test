@@ -1,0 +1,54 @@
+<!-- these two were totally stolen from chatgpt -->
+<!-- treat these as a PoC -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Your Weather Forecast</title>
+</head>
+<body style="margin:0; padding:0; background:#f2f2f2;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f2f2f2; padding:30px 0;">
+    <tr>
+      <td align="center">
+        <!-- White “card” -->
+        <table width="600" cellpadding="0" cellspacing="0" style="
+            background:#ffffff;
+            border-radius:8px;
+            padding:40px;
+            font-family: sans-serif;
+            color: #333333;
+            line-height:1.4;
+          ">
+          <tr>
+            <td>
+              <p>Hello,</p>
+              <p>Here’s your <strong>{{.Frequency}}</strong> forecast for <strong>{{.City}}</strong>:</p>
+              <table cellpadding="0" cellspacing="0" width="100%" style="margin:20px 0;">
+                <tr>
+                  <td style="padding:8px 0;"><strong>Temperature:</strong></td>
+                  <td style="padding:8px 0;">{{printf "%.1f" .Temperature}} °C</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 0;"><strong>Conditions:</strong></td>
+                  <td style="padding:8px 0;">{{.Description}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 0;"><strong>Humidity:</strong></td>
+                  <td style="padding:8px 0;">{{.Humidity}} %</td>
+                </tr>
+              </table>
+              <p style="margin-top: 30px;">
+                To unsubscribe, <a href="{{.UnsubURL}}" style="
+                    color:#1a0dab;
+                    text-decoration:underline;
+                  ">click here</a>.
+              </p>
+              <p>Stay safe,<br>Your Weather App Team</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

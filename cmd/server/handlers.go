@@ -44,7 +44,9 @@ func subscribeHandler(c *gin.Context) {
 	}
 
 	log.Printf("Sending confirmation email to %s (token `%s`)", payload.Email, newToken)
-	mailClient.SendConfirmation(payload, GetUnsubUrl(newToken))
+	if err := mailClient.SendConfirmation(payload, GetUnsubUrl(newToken)); err != nil {
+		log.Printf("Couldn't send confirmation email: %v", err)
+	}
 
 	c.JSON(200, api.TextResponse{Code: 200, Message: "Subscription successful. Confirmation email sent."})
 }

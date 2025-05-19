@@ -52,6 +52,8 @@ func SendWeatherForecasts(ctx context.Context, counter uint) {
 			weatherCache[sub.City] = weather
 		}
 		log.Printf("Sending %s weather forecast in %s to %s", sub.Frequency, sub.City, sub.Email)
-		mailClient.SendWeather(sub, weather, GetUnsubUrl(sub.Token))
+		if err := mailClient.SendWeather(sub, weather, GetUnsubUrl(sub.Token)); err != nil {
+			log.Printf("Couldn't send weather forecast: %v", err)
+		}
 	}
 }
