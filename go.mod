@@ -7,6 +7,7 @@ require (
 	github.com/goloop/env v1.2.1
 	github.com/lib/pq v1.10.9
 	github.com/pressly/goose/v3 v3.24.3
+	github.com/robfig/cron v1.2.0
 )
 
 require (

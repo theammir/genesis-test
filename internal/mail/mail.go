@@ -7,6 +7,7 @@ import (
 	"net/smtp"
 
 	"github.com/theammir/genesis-test/api"
+	database "github.com/theammir/genesis-test/internal/db"
 )
 
 type Client struct {
@@ -73,17 +74,17 @@ func (c *Client) sendEmail(to, subject, message string) error {
 // TODO: On the server, make a goroutine that invokes these periodically, fetching recipients
 // from DB.
 
-func (c *Client) SendConfirmation(payload api.SubscribePayload, url string) error {
+func (c *Client) SendConfirmation(payload api.SubscribePayload, unsubUrl string) error {
 	message := fmt.Sprintf("Confirm your subscription for %s forecast updates in %s: %s",
-		payload.Frequency, payload.City, url)
+		payload.Frequency, payload.City, unsubUrl)
 	return c.sendEmail(payload.Email, "Weather subscription confirmation", message)
 }
 
-func (c *Client) SendWeather(payload api.SubscribePayload, weather api.Weather, unsubUrl string) error {
+func (c *Client) SendWeather(sub database.Subscriber, weather api.Weather, unsubUrl string) error {
 	message := fmt.Sprintf(
 		"Your %s forecast:\r\n"+
 			"It is %f °C in %s; %s; %d%% of humidity.\r\n\r\n"+
 			"Unsubscribe: %s",
-		payload.Frequency, weather.Temperature, payload.City, weather.Description, weather.Humidity, unsubUrl)
-	return c.sendEmail(payload.Email, fmt.Sprintf("Weather forecast in %s", payload.City), message)
+		sub.Frequency, weather.Temperature, sub.City, weather.Description, weather.Humidity, unsubUrl)
+	return c.sendEmail(sub.Email, fmt.Sprintf("Weather forecast in %s", sub.City), message)
 }

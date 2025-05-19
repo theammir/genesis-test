@@ -116,6 +116,9 @@ github.com/pressly/goose/v3/internal/dialect/dialectquery
 github.com/pressly/goose/v3/internal/gooseutil
 github.com/pressly/goose/v3/internal/sqlparser
 github.com/pressly/goose/v3/lock
+# github.com/robfig/cron v1.2.0
+## explicit
+github.com/robfig/cron
 # github.com/sethvargo/go-retry v0.3.0
 ## explicit; go 1.21
 github.com/sethvargo/go-retry
