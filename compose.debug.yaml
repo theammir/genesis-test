@@ -1,14 +1,20 @@
 services:
-  mailhog:
-    image: mailhog/mailhog:latest
-    environment:
-      SMTP_HOST: mailhog
-      SMTP_PORT: "1025"
-      SMTP_USER: debug
-      SMTP_PASS: debug
+  mailpit:
+    image: axllent/mailpit
+    container_name: mailpit
+    restart: unless-stopped
+    volumes:
+      - ./debug/data:/data
+      - ./debug/certs/:/certs
     ports:
-      - "1025:1025"
-      - "8025:8025"
+      - 8025:8025
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATABASE: /data/mailpit.db
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_TLS_CERT: /certs/cert.pem
+      MP_SMTP_TLS_KEY: /certs/key.pem
+      MP_SMTP_REQUIRE_STARTTLS: true
     networks:
       - backend
     profiles:
@@ -16,15 +22,12 @@ services:
 
   server:
     environment:
-      SMTP_HOST: "127.0.0.1"
+      SMTP_HOST: mailpit
       SMTP_PORT: "1025"
       SMTP_USER: debug
       SMTP_PASS: debug
       SMTP_FROM: debug@weather.com
     depends_on:
-      - mailhog
+      - mailpit
     profiles:
       - debug
-
-networks:
-  backend:
