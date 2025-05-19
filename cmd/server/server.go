@@ -21,7 +21,13 @@ var (
 )
 
 func GetUnsubUrl(token string) string {
-	url := "http://" + cfg.Host
+	var url string
+	if cfg.TLSCertPath != "" {
+		url += "https://"
+	} else {
+		url += "http://"
+	}
+	url += cfg.Host
 	if cfg.Port != "80" && cfg.Port != "443" {
 		url += ":" + cfg.Port
 	}
@@ -30,8 +36,11 @@ func GetUnsubUrl(token string) string {
 }
 
 type EnvConfig struct {
-	Host string `env:"HOST" def:"0.0.0.0"`
-	Port string `env:"PORT" def:"8080"`
+	Host            string `env:"HOST" def:"0.0.0.0"`
+	Port            string `env:"PORT" def:"8080"`
+	TLSCertPath     string `env:"TLS_CERT_PATH"`
+	TLSKeyPath      string `env:"TLS_KEY_PATH"`
+	TrustedPlatform string `env:"TRUSTED_PLATFORM" def:""`
 
 	APIKey string `env:"WEATHERAPI_KEY"`
 
@@ -48,35 +57,63 @@ type EnvConfig struct {
 	SMTPFrom string `env:"SMTP_FROM"`
 }
 
-func main() {
-	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
-	log.SetOutput(os.Stdout)
-
+func initGlobalHandles() {
 	if err := env.Unmarshal("", &cfg); err != nil {
 		log.Fatal("Environment variables missing!!")
 	}
 
 	db = database.Get(cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName)
-	database.MigrateUp(db)
 
 	weatherClient = weather.NewClient(cfg.APIKey)
+
 	log.Println("Initializing SMTP client...")
-	newMailClient, err := mail.NewClient(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPass, cfg.SMTPFrom)
+	var err error
+	mailClient, err = mail.NewClient(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPass, cfg.SMTPFrom)
 	if err != nil {
-		log.Fatalf("Couldn't create an SMTP client: %v", err)
+		log.Printf("Couldn't create an SMTP client: %v", err)
 	}
-	mailClient = newMailClient
+}
+
+func setTrustedPlatform(router *gin.Engine) {
+	if cfg.TrustedPlatform == "" {
+		router.SetTrustedProxies(nil)
+	} else {
+		switch cfg.TrustedPlatform {
+		case "GOOGLE":
+			router.TrustedPlatform = gin.PlatformGoogleAppEngine
+		case "CLOUDFLARE":
+			router.TrustedPlatform = gin.PlatformCloudflare
+		case "FLYIO":
+			router.TrustedPlatform = gin.PlatformFlyIO
+		default:
+			router.TrustedPlatform = cfg.TrustedPlatform
+		}
+	}
+}
+
+func main() {
+	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+	log.SetOutput(os.Stdout)
+
+	initGlobalHandles()
+
+	database.MigrateUp(db)
 	defer mailClient.Close()
 
 	scheduler := SpawnHourlyWorker(context.Background())
 	defer scheduler.Stop()
 
 	router := gin.Default()
+	setTrustedPlatform(router)
 
 	router.GET("/weather", weatherHandler)
 	router.POST("/subscribe", subscribeHandler)
 	router.GET("/confirm/:token", confirmHandler)
 	router.GET("/unsubscribe/:token", unsubscribeHandler)
 
-	router.Run(cfg.Host + ":" + cfg.Port)
+	if cfg.TLSCertPath != "" {
+		router.RunTLS(cfg.Host+":"+cfg.Port, cfg.TLSCertPath, cfg.TLSKeyPath)
+	} else {
+		router.Run(cfg.Host + ":" + cfg.Port)
+	}
 }

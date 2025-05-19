@@ -51,6 +51,10 @@ func NewClient(host, port, user, password, from string) (*Client, error) {
 }
 
 func (c *Client) sendEmail(to string, message []byte) error {
+	if c == nil {
+		return nil
+	}
+
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

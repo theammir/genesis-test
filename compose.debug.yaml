@@ -4,16 +4,15 @@ services:
     container_name: mailpit
     restart: unless-stopped
     volumes:
-      - ./debug/data/:/data
-      - ./debug/certs/:/certs
+      - ./debug/:/data
     ports:
       - 8025:8025
     environment:
       MP_MAX_MESSAGES: 5000
       MP_DATABASE: /data/mailpit.db
       MP_SMTP_AUTH_ACCEPT_ANY: 1
-      MP_SMTP_TLS_CERT: /certs/cert.pem
-      MP_SMTP_TLS_KEY: /certs/key.pem
+      MP_SMTP_TLS_CERT: /data/certs/cert.pem
+      MP_SMTP_TLS_KEY: /data/certs/key.pem
       MP_SMTP_REQUIRE_STARTTLS: true
     networks:
       - backend
