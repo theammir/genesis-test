@@ -54,7 +54,7 @@ type WeatherPayload struct {
 }
 
 type SubscribePayload struct {
-	Email     string `form:"email" binding:"required"`
+	Email     string `form:"email" binding:"required,email"`
 	City      string `form:"city" binding:"required"`
 	Frequency string `form:"frequency" binding:"required,oneof=hourly daily"`
 }

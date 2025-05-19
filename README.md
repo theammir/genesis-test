@@ -69,3 +69,7 @@ I really don't get plain `string` errors, and that they are rarely defined. Not 
 can often only pinpoint the specific issue after logging the error out at runtime.
 
 Maybe I will like them more eventually.
+
+Also, [this](https://github.com/theammir/genesis-test/blob/master/internal/mail/templates.go#L50-L52) is the reason, in my opinion, why formatters exist in the first place -- to handle long lines and let me just write code.
+Am I supposed to waste my time indenting this now? Did I have to put thought into it while I was writing this code?
+But `gofmt` just refuses to do anything about it.
