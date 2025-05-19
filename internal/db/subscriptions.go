@@ -15,21 +15,6 @@ type Subscriber struct {
 	Token     string
 }
 
-// Generates a unique confirmation token.
-func GenerateToken(db *sql.DB) (string, error) {
-	// TODO: Proper implementation
-	var count string
-	err := db.QueryRow("SELECT count(*) FROM confirmations;").Scan(&count)
-	if err == sql.ErrNoRows {
-		return "0", nil
-	}
-	if err != nil {
-		return "", err
-	}
-
-	return count, nil
-}
-
 // Delete all the confirmation tokens of a user.
 // If `preserveToken` is specified, doesn't remove that token.
 func deleteConfirmations(db *sql.DB, email string, preserveToken *string) error {
@@ -72,15 +57,12 @@ func SubscribeUser(db *sql.DB, payload *api.SubscribePayload) (string, error) {
 		return "", err
 	}
 
-	token, err := GenerateToken(db)
-	if err != nil {
-		return "", err
-	}
-
-	if _, err := tx.Exec(`
-			INSERT INTO confirmations (email, token)
-			VALUES ($1, $2);
-		`, payload.Email, token); err != nil {
+	var token string
+	if err := tx.QueryRow(`
+			INSERT INTO confirmations (email)
+			VALUES ($1)
+			RETURNING token;
+		`, payload.Email).Scan(&token); err != nil {
 		tx.Rollback()
 		return "", err
 	}

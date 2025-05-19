@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/smtp"
+	"sync"
 
 	"github.com/theammir/genesis-test/api"
 	database "github.com/theammir/genesis-test/internal/db"
@@ -16,6 +17,7 @@ type Client struct {
 	user     string
 	password string
 	from     string
+	mu       sync.Mutex
 	*smtp.Client
 }
 
@@ -44,7 +46,7 @@ func NewClient(host, port, user, password, from string) (*Client, error) {
 		return nil, fmt.Errorf("auth error: %w", err)
 	}
 
-	return &Client{host, port, user, password, from, smtpC}, nil
+	return &Client{host, port, user, password, from, sync.Mutex{}, smtpC}, nil
 }
 
 // Send an email to a single subject. `message` must be CRLF formatted.
@@ -55,6 +57,10 @@ func (c *Client) sendEmail(to, subject, message string) error {
 			"\r\n" +
 			message + "\r\n",
 	)
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	if err := c.Mail(c.from); err != nil {
 		return err
 	}
