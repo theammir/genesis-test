@@ -36,8 +36,8 @@ func GetUnsubUrl(token string) string {
 }
 
 type EnvConfig struct {
-	Host            string `env:"HOST" def:"0.0.0.0"`
-	Port            string `env:"PORT" def:"8080"`
+	Host            string `env:"HOST"             def:"0.0.0.0"`
+	Port            string `env:"PORT"             def:"8080"`
 	TLSCertPath     string `env:"TLS_CERT_PATH"`
 	TLSKeyPath      string `env:"TLS_KEY_PATH"`
 	TrustedPlatform string `env:"TRUSTED_PLATFORM" def:""`
@@ -47,8 +47,8 @@ type EnvConfig struct {
 	DBUser     string `env:"POSTGRES_USER"`
 	DBPassword string `env:"POSTGRES_PASSWORD"`
 	DBName     string `env:"POSTGRES_DB"`
-	DBHost     string `env:"POSTGRES_HOST" def:"db"`
-	DBPort     string `env:"POSTGRES_PORT" def:"5432"`
+	DBHost     string `env:"POSTGRES_HOST"     def:"db"`
+	DBPort     string `env:"POSTGRES_PORT"     def:"5432"`
 
 	SMTPHost string `env:"SMTP_HOST"`
 	SMTPPort string `env:"SMTP_PORT" def:"587"`
@@ -68,7 +68,13 @@ func initGlobalHandles() {
 
 	log.Println("Initializing SMTP client...")
 	var err error
-	mailClient, err = mail.NewClient(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPass, cfg.SMTPFrom)
+	mailClient, err = mail.NewClient(
+		cfg.SMTPHost,
+		cfg.SMTPPort,
+		cfg.SMTPUser,
+		cfg.SMTPPass,
+		cfg.SMTPFrom,
+	)
 	if err != nil {
 		log.Printf("Couldn't create an SMTP client: %v", err)
 	}

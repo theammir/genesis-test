@@ -43,11 +43,18 @@ type Client struct {
 }
 
 func NewClient(apiKey string) *Client {
-	return &Client{APIKey: apiKey, httpClient: &http.Client{}, ttlCache: cache.NewTTLCache[string, *CurrentWeatherResponse](15 * time.Minute)}
+	return &Client{
+		APIKey:     apiKey,
+		httpClient: &http.Client{},
+		ttlCache:   cache.NewTTLCache[string, *CurrentWeatherResponse](15 * time.Minute),
+	}
 }
 
-func (c *Client) GetCurrentWeather(ctx context.Context, locationQuery string) (*CurrentWeatherResponse, error) {
-	var locationLower = strings.ToLower(locationQuery)
+func (c *Client) GetCurrentWeather(
+	ctx context.Context,
+	locationQuery string,
+) (*CurrentWeatherResponse, error) {
+	locationLower := strings.ToLower(locationQuery)
 	weather, ok := c.ttlCache.Get(locationLower)
 	if !ok {
 		var err error
@@ -62,7 +69,10 @@ func (c *Client) GetCurrentWeather(ctx context.Context, locationQuery string) (*
 	return weather, nil
 }
 
-func (c *Client) fetchCurrentWeather(ctx context.Context, locationQuery string) (*CurrentWeatherResponse, error) {
+func (c *Client) fetchCurrentWeather(
+	ctx context.Context,
+	locationQuery string,
+) (*CurrentWeatherResponse, error) {
 	endpoint := baseURL + "/current.json"
 	requestURL, _ := url.Parse(endpoint)
 

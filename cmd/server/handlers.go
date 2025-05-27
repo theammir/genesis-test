@@ -48,7 +48,10 @@ func subscribeHandler(c *gin.Context) {
 		log.Printf("Couldn't send confirmation email: %v", err)
 	}
 
-	c.JSON(200, api.TextResponse{Code: 200, Message: "Subscription successful. Confirmation email sent."})
+	c.JSON(
+		200,
+		api.TextResponse{Code: 200, Message: "Subscription successful. Confirmation email sent."},
+	)
 }
 
 func confirmHandler(c *gin.Context) {

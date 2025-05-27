@@ -12,8 +12,11 @@ import (
 
 //go:embed templates/*.html
 var templatesFS embed.FS
-var Confirmation string = "templates/confirmation.html"
-var Weather string = "templates/weather.html"
+
+var (
+	Confirmation string = "templates/confirmation.html"
+	Weather      string = "templates/weather.html"
+)
 
 type ConfirmationFormat struct {
 	City      string
@@ -43,10 +46,25 @@ func formatTemplate(template string, data any) (string, error) {
 }
 
 func GetConfirmationHTML(payload api.SubscribePayload, unsubURL string) (string, error) {
-	return formatTemplate(Confirmation, ConfirmationFormat{City: payload.City, Frequency: payload.Frequency, UnsubURL: unsubURL})
+	return formatTemplate(
+		Confirmation,
+		ConfirmationFormat{City: payload.City, Frequency: payload.Frequency, UnsubURL: unsubURL},
+	)
 }
 
 func GetWeatherHTML(sub database.Subscriber, weather api.Weather, unsubURL string) (string, error) {
 	// does gofmt not care? anyway i'll fix it later
-	return formatTemplate(Weather, WeatherFormat{Temperature: weather.Temperature, Humidity: weather.Humidity, Description: weather.Description, ConfirmationFormat: ConfirmationFormat{City: sub.City, Frequency: sub.Frequency, UnsubURL: unsubURL}})
+	return formatTemplate(
+		Weather,
+		WeatherFormat{
+			Temperature: weather.Temperature,
+			Humidity:    weather.Humidity,
+			Description: weather.Description,
+			ConfirmationFormat: ConfirmationFormat{
+				City:      sub.City,
+				Frequency: sub.Frequency,
+				UnsubURL:  unsubURL,
+			},
+		},
+	)
 }
